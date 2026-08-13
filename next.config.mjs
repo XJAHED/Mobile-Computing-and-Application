@@ -1,15 +1,3 @@
-import withPWAInit from "@ducanh2912/next-pwa";
-
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: false,
-  register: true,
-  skipWaiting: true,
-  devOptions: {
-    enabled: true,
-  },
-});
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
@@ -19,4 +7,4 @@ const nextConfig = {
   turbopack: {},
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;

@@ -41,11 +41,10 @@ const ProfileModal = ({ onClose }) => {
   const isEligible = checkEligibility(profile.lastDonation);
 
   // Auto-update availability based on date logic
+  // Only force isAvailable=false when ineligible; otherwise respect the user's manual toggle
   useEffect(() => {
     if (!isEligible) {
       setProfile(prev => ({ ...prev, isAvailable: false }));
-    } else if (profile.lastDonation && isEligible) {
-      setProfile(prev => ({ ...prev, isAvailable: true }));
     }
   }, [profile.lastDonation]);
 

@@ -1,18 +1,12 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
-import PWARegister from '../src/components/PWARegister';
+import ServiceWorkerCleanup from '../src/components/ServiceWorkerCleanup';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'Redrop',
   description: 'A platform for blood donation and urgent requests.',
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Redrop',
-  },
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -40,8 +34,8 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-icon" href="/logo.png" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
+        <ServiceWorkerCleanup />
         {children}
-        <PWARegister />
       </body>
     </html>
   );

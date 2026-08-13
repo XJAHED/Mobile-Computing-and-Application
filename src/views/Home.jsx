@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, MapPin, Search, Phone, Home as HouseIcon, UserCircle, AlertTriangle, Clock, Droplet, HelpCircle, Download } from 'lucide-react';
+import { LogOut, MapPin, Search, Phone, Home as HouseIcon, UserCircle, AlertTriangle, Clock, Droplet, HelpCircle } from 'lucide-react';
 import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, deleteDoc } from 'firebase/firestore';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
-import { db, auth, messaging } from '../firebase';
-import { getToken } from 'firebase/messaging';
+import { db, auth } from '../firebase';
 import { useRouter } from 'next/navigation';
 import BloodGroupButton from '../components/BloodGroupButton';
 import Button from '../components/Button';
@@ -33,8 +32,6 @@ const Home = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(8);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstallable, setIsInstallable] = useState(false);
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -46,30 +43,6 @@ const Home = () => {
   useEffect(() => {
     loadProfile();
   }, []);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      setIsInstallable(false);
-    }
-  };
 
   // 1. Get User's Live Location and Update Firestore
   useEffect(() => {
@@ -139,35 +112,6 @@ const Home = () => {
     }
 
     return () => { cancelled = true; };
-  }, [currentUser?.uid]);
-
-  // Request & Store FCM Push Token for specific blood group alerting
-  useEffect(() => {
-    if (currentUser?.uid && messaging && typeof window !== "undefined") {
-      const requestFCMToken = async () => {
-        try {
-          // If env var is missing, skip to avoid UI crashes
-          if (!import.meta.env.VITE_FIREBASE_VAPID_KEY) return;
-
-          const permission = await Notification.requestPermission();
-          if (permission === 'granted') {
-            const currentToken = await getToken(messaging, {
-              vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY
-            });
-            if (currentToken) {
-              const userRef = doc(db, 'users', currentUser.uid);
-              await updateDoc(userRef, { fcmToken: currentToken });
-            }
-          }
-        } catch (err) {
-          console.log("FCM Background permission error/denied:", err);
-        }
-      };
-
-      if (Notification.permission !== 'denied') {
-        requestFCMToken();
-      }
-    }
   }, [currentUser?.uid]);
 
   // Haversine formula
@@ -280,7 +224,7 @@ const Home = () => {
   const displayedDonors = donors.filter(donor => {
     const matchGroup = searchedGroup ? donor.group === searchedGroup : true;
     const matchDistance = donor.distance !== '?' ? parseFloat(donor.distance) <= parseFloat(maxDistance) : true;
-    return matchGroup && matchDistance && donor.isAvailable && donor.isVisible;
+    return matchGroup && matchDistance && donor.isVisible;
   });
 
   const handleLogout = async () => {
@@ -310,16 +254,6 @@ const Home = () => {
             <img className="absolute left-0 object-contain w-auto -translate-y-1/2 top-1/2 h-28 mix-blend-multiply" alt="ReDrop Logo" src="/logo.png" />
           </div>
           <div className="flex items-center gap-4">
-            {isInstallable && (
-              <button
-                onClick={handleInstallClick}
-                className="p-1 text-red-600 transition-colors hover:text-red-700 animate-bounce"
-                aria-label="Install App"
-                title="Install App"
-              >
-                <Download className="w-6 h-6" />
-              </button>
-            )}
             <button
               onClick={() => setIsGuideOpen(true)}
               className="p-1 text-gray-500 transition-colors hover:text-red-500"
@@ -605,11 +539,6 @@ const Home = () => {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      {/* <footer className="max-w-md px-4 py-12 mx-auto mb-4 text-sm text-center text-gray-500">
-        Created By <a href="https://www.linkedin.com/in/sma-rashik/" target="_blank" rel="noopener noreferrer" className="font-semibold text-red-600 transition-colors hover:underline">S M Abdul Rashik</a>
-      </footer> */}
 
       {/* Modals */}
       {isUrgentModalOpen && currentUser && (

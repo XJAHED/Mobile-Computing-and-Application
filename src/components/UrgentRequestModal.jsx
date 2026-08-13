@@ -35,18 +35,6 @@ const UrgentRequestModal = ({ onClose, currentUser }) => {
       };
       
       await addDoc(collection(db, 'urgent_requests'), requestData);
-      
-      // Trigger Background Push Notifications asynchronously via express backend
-      fetch('http://localhost:5000/api/notify', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-            bloodGroup,
-            requesterName: currentUser.name,
-            location,
-            note
-         })
-      }).catch(e => console.error("Notification API Dispatch Failed:", e));
 
       onClose();
     } catch (err) {
@@ -58,25 +46,25 @@ const UrgentRequestModal = ({ onClose, currentUser }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl flex flex-col relative animate-in zoom-in-95 duration-200 p-6 transition-colors duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-black/60 animate-in fade-in">
+      <div className="relative flex flex-col w-full max-w-md p-6 transition-colors duration-200 bg-white shadow-2xl rounded-3xl animate-in zoom-in-95">
         
-        <header className="flex justify-between items-center mb-6">
+        <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2 text-red-600">
              <AlertCircle className="w-6 h-6" />
              <h2 className="text-xl font-bold">Post Urgent Need</h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 :bg-gray-800 text-gray-500 transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-500 transition-colors rounded-full hover:bg-gray-100 :bg-gray-800">
             <X className="w-5 h-5" />
           </button>
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Blood Group Needed *</label>
+            <label className="block mb-1 text-sm font-medium text-gray-700">Blood Group Needed *</label>
              <select 
                 value={bloodGroup} 
-                onChange={(e) => setBloodGroup(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all appearance-none" 
+                onChange={(e) => setBloodGroup(e.target.value)} className="w-full px-4 py-3 text-gray-900 transition-all border border-gray-200 outline-none appearance-none bg-gray-50 rounded-xl focus:ring-2 focus:ring-red-500" 
                 required
               >
                 <option value="" disabled>Select Blood Group</option>
@@ -87,7 +75,7 @@ const UrgentRequestModal = ({ onClose, currentUser }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hospital / Location *</label>
+            <label className="block mb-1 text-sm font-medium text-gray-700">Hospital / Location *</label>
             <LocationAutocomplete 
               value={location}
               onLocationSelect={(addr, coords) => {
@@ -99,9 +87,9 @@ const UrgentRequestModal = ({ onClose, currentUser }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone *</label>
-            <div className="relative flex items-center bg-gray-50 border border-gray-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 transition-all overflow-hidden text-sm">
-               <div className="pl-4 pr-3 py-3 bg-gray-100 text-gray-600 font-bold border-r border-gray-200 flex items-center justify-center shrink-0">
+            <label className="block mb-1 text-sm font-medium text-gray-700">Contact Phone *</label>
+            <div className="relative flex items-center overflow-hidden text-sm transition-all border border-gray-200 bg-gray-50 rounded-xl focus-within:ring-2 focus-within:ring-red-500">
+               <div className="flex items-center justify-center py-3 pl-4 pr-3 font-bold text-gray-600 bg-gray-100 border-r border-gray-200 shrink-0">
                  +880
                </div>
                <input 
@@ -111,7 +99,7 @@ const UrgentRequestModal = ({ onClose, currentUser }) => {
                      const val = e.target.value.replace(/\D/g, '').replace(/^(?:88)?0?/, '');
                      setPhone(`+880${val.slice(0, 10)}`);
                   }} 
-                  className="w-full pl-3 pr-4 py-3 bg-transparent text-gray-900 outline-none font-semibold tracking-wide" 
+                  className="w-full py-3 pl-3 pr-4 font-semibold tracking-wide text-gray-900 bg-transparent outline-none" 
                   required
                   placeholder="1XXXXXXXXX (10 digits)"
                />
@@ -119,12 +107,12 @@ const UrgentRequestModal = ({ onClose, currentUser }) => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Note (Optional)</label>
+            <label className="block mb-1 text-sm font-medium text-gray-700">Additional Note (Optional)</label>
             <textarea 
               value={note} 
               onChange={(e) => setNote(e.target.value)}
               placeholder="Patient condition, bag requirements..."
-              rows="2" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 text-gray-900 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none" 
+              rows="2" className="w-full px-4 py-3 text-gray-900 transition-all border border-gray-200 outline-none resize-none bg-gray-50 rounded-xl focus:ring-2 focus:ring-red-500" 
             />
           </div>
 
