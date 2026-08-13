@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, MapPin, Search, Phone, Home as HouseIcon, UserCircle, AlertTriangle, Clock, Droplet, HelpCircle, Download } from 'lucide-react';
 import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, deleteDoc } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 import { db, auth, messaging } from '../firebase';
 import { getToken } from 'firebase/messaging';
 import { useRouter } from 'next/navigation';
@@ -71,33 +73,72 @@ const Home = () => {
 
   // 1. Get User's Live Location and Update Firestore
   useEffect(() => {
+    let cancelled = false;
+
+    const applyLocation = (coords) => {
+      if (cancelled) return;
+      setUserLocation(coords);
+      if (currentUser?.uid) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        updateDoc(userRef, { coordinates: coords }).catch((error) => {
+          console.error("Error updating location:", error);
+        });
+      }
+    };
+
     // 0. Fallback: Set location instantly using saved Account Profile Coordinates
     if (currentUser?.profileCoordinates?.length === 2) {
       setUserLocation(currentUser.profileCoordinates);
     }
 
-    if (currentUser && currentUser.uid && "geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          setUserLocation([lat, lng]);
+    if (!currentUser?.uid) return;
 
-          try {
-            const userRef = doc(db, 'users', currentUser.uid);
-            await updateDoc(userRef, {
-              coordinates: [lat, lng]
-            });
-          } catch (error) {
-            console.error("Error updating location:", error);
+    // Native Capacitor Geolocation (Android/iOS) — handles runtime permission prompt
+    const getNativeLocation = async () => {
+      try {
+        const permission = await Geolocation.checkPermissions();
+        if (permission.location === 'denied') {
+          const req = await Geolocation.requestPermissions();
+          if (req.location === 'denied') {
+            console.warn("Location permission denied by user.");
+            return;
           }
+        }
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000
+        });
+        applyLocation([position.coords.latitude, position.coords.longitude]);
+      } catch (error) {
+        console.warn("Native geolocation error:", error);
+      }
+    };
+
+    // Web / PWA fallback
+    const getWebLocation = () => {
+      if (!("geolocation" in navigator)) {
+        console.warn("Geolocation not supported in this browser.");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          applyLocation([position.coords.latitude, position.coords.longitude]);
         },
         (error) => {
           console.warn("Geolocation error:", error.message);
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
       );
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      getNativeLocation();
+    } else {
+      getWebLocation();
     }
+
+    return () => { cancelled = true; };
   }, [currentUser?.uid]);
 
   // Request & Store FCM Push Token for specific blood group alerting

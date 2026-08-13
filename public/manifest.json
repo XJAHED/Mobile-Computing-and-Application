@@ -1,23 +1,55 @@
 {
-  "name": "Redrop",
+  "name": "Redrop - Blood Donation Platform",
   "short_name": "Redrop",
-  "description": "A platform for blood donation and urgent requests.",
+  "description": "A platform for blood donation and urgent requests. Find nearby donors instantly.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "background_color": "#fffafa",
   "theme_color": "#dc2626",
+  "lang": "en",
+  "categories": ["health", "medical", "social"],
   "icons": [
     {
       "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Request Blood",
+      "short_name": "Request",
+      "description": "Post an urgent blood request",
+      "url": "/home",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Find Donors",
+      "short_name": "Donors",
+      "description": "Find nearby blood donors",
+      "url": "/home",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     }
   ]
 }
