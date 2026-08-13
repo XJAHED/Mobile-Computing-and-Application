@@ -169,6 +169,7 @@ const Home = () => {
           address: data.address,
           coordinates: activeCoords || [],
           isAvailable: data.isAvailable !== false,
+          isVisible: data.isVisible !== false,
           isEligible: isEligible,
           lastDonation: data.lastDonation || null
         });
@@ -238,7 +239,7 @@ const Home = () => {
   const displayedDonors = donors.filter(donor => {
     const matchGroup = searchedGroup ? donor.group === searchedGroup : true;
     const matchDistance = donor.distance !== '?' ? parseFloat(donor.distance) <= parseFloat(maxDistance) : true;
-    return matchGroup && matchDistance;
+    return matchGroup && matchDistance && donor.isAvailable && donor.isVisible;
   });
 
   const handleLogout = async () => {
@@ -262,16 +263,16 @@ const Home = () => {
     <div className="min-h-screen bg-[#fffafa] text-red-950 pb-48 font-sans transition-colors duration-300 flex flex-col items-center">
 
       {/* App Bar */}
-      <header className="w-full bg-white border-b border-gray-50 sticky top-0 z-20">
-        <div className="max-w-md mx-auto px-5 py-3 flex justify-between items-center">
-          <div className="relative h-12 w-24">
-            <img className="absolute top-1/2 left-0 -translate-y-1/2 h-28 w-auto object-contain mix-blend-multiply" alt="ReDrop Logo" src="/logo.png" />
+      <header className="sticky top-0 z-20 w-full bg-white border-b border-gray-50">
+        <div className="flex items-center justify-between max-w-md px-5 py-3 mx-auto">
+          <div className="relative w-24 h-12">
+            <img className="absolute left-0 object-contain w-auto -translate-y-1/2 top-1/2 h-28 mix-blend-multiply" alt="ReDrop Logo" src="/logo.png" />
           </div>
-          <div className="flex gap-4 items-center">
+          <div className="flex items-center gap-4">
             {isInstallable && (
               <button
                 onClick={handleInstallClick}
-                className="p-1 text-red-600 hover:text-red-700 transition-colors animate-bounce"
+                className="p-1 text-red-600 transition-colors hover:text-red-700 animate-bounce"
                 aria-label="Install App"
                 title="Install App"
               >
@@ -280,14 +281,14 @@ const Home = () => {
             )}
             <button
               onClick={() => setIsGuideOpen(true)}
-              className="p-1 text-gray-500 hover:text-red-500 transition-colors"
+              className="p-1 text-gray-500 transition-colors hover:text-red-500"
               aria-label="User Guide"
             >
               <HelpCircle className="w-6 h-6" />
             </button>
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="relative p-1 text-gray-500 hover:text-red-500 transition-colors"
+              className="relative p-1 text-gray-500 transition-colors hover:text-red-500"
               aria-label="Profile"
             >
               <UserCircle className="w-7 h-7" />
@@ -297,7 +298,7 @@ const Home = () => {
             </button>
             <button
               onClick={handleLogout}
-              className="p-1 text-gray-500 hover:text-red-500 transition-colors"
+              className="p-1 text-gray-500 transition-colors hover:text-red-500"
               aria-label="Logout"
             >
               <LogOut className="w-6 h-6" />
@@ -308,7 +309,7 @@ const Home = () => {
         {/* Profile Completion Alert */}
         {!isProfileComplete && (
           <div className="bg-orange-50 border-b border-orange-100 p-2.5">
-            <div className="max-w-md mx-auto flex items-center justify-between gap-3 px-2">
+            <div className="flex items-center justify-between max-w-md gap-3 px-2 mx-auto">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0" />
                 <p className="text-orange-800 text-[10px] font-semibold leading-tight">Setup profile to use map.</p>
@@ -327,12 +328,12 @@ const Home = () => {
 
         {/* Live Urgent Feed */}
         {isProfileComplete && (
-          <section className="bg-white rounded-2xl p-5 border border-gray-100 relative overflow-hidden transition-colors">
-            <div className="flex justify-between items-center mb-4 relative z-10">
+          <section className="relative p-5 overflow-hidden transition-colors bg-white border border-gray-100 rounded-2xl">
+            <div className="relative z-10 flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                <div className="relative flex w-3 h-3">
+                  <span className="absolute inline-flex w-full h-full bg-red-400 rounded-full opacity-75 animate-ping"></span>
+                  <span className="relative inline-flex w-3 h-3 bg-red-500 rounded-full"></span>
                 </div>
                 <h3 className="text-base font-bold text-gray-900">Live Feed</h3>
               </div>
@@ -343,13 +344,13 @@ const Home = () => {
               </button>
             </div>
 
-            <div className="space-y-3 relative z-10 max-h-64 overflow-y-auto pr-1">
+            <div className="relative z-10 pr-1 space-y-3 overflow-y-auto max-h-64">
               {urgentFeed.length === 0 ? (
-                <p className="text-center text-sm text-red-800 py-4 bg-red-50/50 rounded-xl border border-dashed border-red-200">No urgent requests right now.</p>
+                <p className="py-4 text-sm text-center text-red-800 border border-red-200 border-dashed bg-red-50/50 rounded-xl">No urgent requests right now.</p>
               ) : (
                 urgentFeed.map(feed => (
-                  <div key={feed.id} className="bg-white rounded-xl p-3 border border-red-100 shadow-sm shadow-red-50 hover:border-red-300 hover:shadow-red-100 transition-all">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={feed.id} className="p-3 transition-all bg-white border border-red-100 shadow-sm rounded-xl shadow-red-50 hover:border-red-300 hover:shadow-red-100">
+                    <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <span className="bg-red-100 text-red-700 font-extrabold text-xs px-2 py-0.5 rounded-md border border-red-200">{feed.bloodGroup}</span>
                         <span className="text-xs font-semibold text-gray-700">{feed.name}</span>
@@ -363,10 +364,10 @@ const Home = () => {
                         return `${Math.floor(diffHrs / 24)}d ago`;
                       })() : 'just now'}</span>
                     </div>
-                    <p className="text-xs font-medium text-gray-800 flex items-start gap-1">
+                    <p className="flex items-start gap-1 text-xs font-medium text-gray-800">
                       <MapPin className="w-3 h-3 mt-0.5 text-gray-400 shrink-0" /> {feed.location}
                     </p>
-                    <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col items-center gap-2">
+                    <div className="flex flex-col items-center gap-2 pt-3 mt-3 border-t border-gray-100">
                       {currentUser?.uid === feed.postedBy && (
                         <button
                           onClick={async () => {
@@ -392,14 +393,14 @@ const Home = () => {
 
         {/* Request Section */}
         <section className="space-y-4">
-          <div className="flex justify-between items-end">
+          <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Request Blood</h2>
-              <p className="text-gray-500 text-sm mt-1">Select the blood group you need to immediately find nearby donors</p>
+              <h2 className="text-2xl font-bold tracking-tight text-gray-900">Request Blood</h2>
+              <p className="mt-1 text-sm text-gray-500">Select the blood group you need to immediately find nearby donors</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-3 sm:gap-4 mt-2">
+          <div className="grid grid-cols-4 gap-3 mt-2 sm:gap-4">
             {bloodGroups.map((group) => (
               <BloodGroupButton
                 key={group}
@@ -423,9 +424,9 @@ const Home = () => {
         </section>
 
         {/* Map & List Section */}
-        <div className="bg-white/90 backdrop-blur-xl rounded-3xl p-6 shadow-sm shadow-gray-200/50 border border-gray-100 space-y-6 relative z-0 transition-colors">
-          <div className="pb-4 border-b border-gray-100 space-y-4">
-            <div className="flex justify-between items-center mb-1">
+        <div className="relative z-0 p-6 space-y-6 transition-colors border border-gray-100 shadow-sm bg-white/90 backdrop-blur-xl rounded-3xl shadow-gray-200/50">
+          <div className="pb-4 space-y-4 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-1">
               <h3 className="text-lg font-bold text-gray-900">
                 {searchedGroup ? `Live Tracking: ${searchedGroup} Donors` : 'Live Tracking Map'}
               </h3>
@@ -443,7 +444,7 @@ const Home = () => {
                     }
                     setIsMapOpen(true);
                   }}
-                  className="flex items-center justify-center gap-2 py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-100 shadow-sm rounded-xl active:scale-95 transition-all"
+                  className="flex items-center justify-center gap-2 py-4 font-bold text-indigo-700 transition-all border border-indigo-100 shadow-sm bg-indigo-50 hover:bg-indigo-100 rounded-xl active:scale-95"
                 >
                   <MapPin className="w-5 h-5" /> View Live Map
                 </Button>
@@ -451,12 +452,12 @@ const Home = () => {
             )}
 
             {userLocation && isProfileComplete && (
-              <div className="flex flex-col bg-white p-5 rounded-2xl border border-gray-100 shadow-sm transition-all group">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-sm font-bold text-gray-700 flex items-center gap-2">
+              <div className="flex flex-col p-5 transition-all bg-white border border-gray-100 shadow-sm rounded-2xl group">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="flex items-center gap-2 text-sm font-bold text-gray-700">
                     <MapPin className="w-4 h-4 text-red-500" /> Radius Filter
                   </span>
-                  <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">{maxDistance} km</span>
+                  <span className="px-3 py-1 text-xs font-bold text-red-600 rounded-full bg-red-50">{maxDistance} km</span>
                 </div>
                 <div className="relative px-1">
                   <input
@@ -466,7 +467,7 @@ const Home = () => {
                     step="1"
                     value={maxDistance}
                     onChange={(e) => setMaxDistance(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-red-600 focus:outline-none transition-all"
+                    className="w-full h-2 transition-all bg-gray-100 rounded-lg appearance-none cursor-pointer accent-red-600 focus:outline-none"
                   />
                   <div className="flex justify-between text-[11px] font-bold text-gray-400 mt-2 px-0.5">
                     <span>1km</span>
@@ -480,19 +481,19 @@ const Home = () => {
           {/* Donors List with Framer Motion */}
           <div className="space-y-3 min-h-[150px]">
             {!isProfileComplete ? (
-              <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                <h3 className="font-bold text-gray-900 mb-1 text-sm">Features Locked</h3>
-                <p className="text-xs text-gray-500 mb-4 px-6">Complete your profile to see active donors nearby.</p>
-                <button onClick={() => setIsProfileOpen(true)} className="mx-auto bg-gray-800 text-white font-semibold py-2 px-6 rounded-lg hover:bg-gray-900 transition-colors shadow-sm text-xs">Setup Profile Now</button>
+              <div className="py-8 text-center border border-gray-200 border-dashed bg-gray-50 rounded-2xl">
+                <h3 className="mb-1 text-sm font-bold text-gray-900">Features Locked</h3>
+                <p className="px-6 mb-4 text-xs text-gray-500">Complete your profile to see active donors nearby.</p>
+                <button onClick={() => setIsProfileOpen(true)} className="px-6 py-2 mx-auto text-xs font-semibold text-white transition-colors bg-gray-800 rounded-lg shadow-sm hover:bg-gray-900">Setup Profile Now</button>
               </div>
             ) : displayedDonors.length === 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-3xl border border-dashed border-gray-200 shadow-sm">
-                <div className="w-16 h-16 bg-red-50 text-red-400 rounded-full flex items-center justify-center mb-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center p-12 text-center bg-white border border-gray-200 border-dashed shadow-sm rounded-3xl">
+                <div className="flex items-center justify-center w-16 h-16 mb-4 text-red-400 rounded-full bg-red-50">
                   <Search className="w-8 h-8" />
                 </div>
-                <h4 className="text-gray-900 font-bold text-base mb-1">No donors found</h4>
-                <p className="text-gray-500 font-medium text-xs mb-5 px-4">Try expanding the radius or posting a request.</p>
-                <button onClick={() => setIsUrgentModalOpen(true)} className="bg-red-600 text-white text-xs font-bold py-3 px-8 rounded-xl hover:bg-red-700 active:scale-95 transition-all">Post an Urgent Request</button>
+                <h4 className="mb-1 text-base font-bold text-gray-900">No donors found</h4>
+                <p className="px-4 mb-5 text-xs font-medium text-gray-500">Try expanding the radius or posting a request.</p>
+                <button onClick={() => setIsUrgentModalOpen(true)} className="px-8 py-3 text-xs font-bold text-white transition-all bg-red-600 rounded-xl hover:bg-red-700 active:scale-95">Post an Urgent Request</button>
               </motion.div>
             ) : (
               <>
@@ -505,15 +506,15 @@ const Home = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.2, delay: index * 0.05 }}
-                      className="flex flex-col p-4 rounded-2xl bg-white hover:bg-gray-50 transition-all border border-gray-100 shadow-sm group"
+                      className="flex flex-col p-4 transition-all bg-white border border-gray-100 shadow-sm rounded-2xl hover:bg-gray-50 group"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                         <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center font-bold text-red-600 shrink-0 border border-red-100">
+                          <div className="flex items-center justify-center w-12 h-12 font-bold text-red-600 border border-red-100 rounded-full bg-red-50 shrink-0">
                             {donor.group}
                           </div>
                           <div className="flex flex-col">
-                            <h4 className="font-bold text-gray-900 text-sm leading-tight">{donor.name}</h4>
+                            <h4 className="text-sm font-bold leading-tight text-gray-900">{donor.name}</h4>
                             <div className="flex items-center text-[10px] mt-1 font-bold">
                               {donor.isAvailable && donor.isEligible ? (
                                 <span className="text-green-600 flex items-center gap-1.5 bg-green-50 px-2.5 py-1 rounded-full border border-green-100/50">
@@ -536,7 +537,7 @@ const Home = () => {
                             </p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2 shrink-0 w-full sm:w-32 mt-2 sm:mt-0">
+                        <div className="grid w-full grid-cols-2 gap-2 mt-2 sm:flex sm:flex-col shrink-0 sm:w-32 sm:mt-0">
                           <a href={`tel:+${String(donor.phone || '').replace(/\D/g, '').startsWith('880') ? String(donor.phone || '').replace(/\D/g, '') : `880${String(donor.phone || '').replace(/\D/g, '').replace(/^0+/, '')}`}`} className="flex items-center justify-center gap-1.5 bg-white hover:bg-gray-50 py-3 rounded-xl border border-gray-100 transition-all font-bold text-gray-800 shadow-sm text-xs active:scale-95">
                             <Phone className="w-3.5 h-3.5 text-red-500" /> Call
                           </a>
@@ -549,7 +550,7 @@ const Home = () => {
                   ))}
                 </AnimatePresence>
                 {displayedDonors.length > visibleCount && (
-                  <div className="flex justify-center mt-4 pb-2">
+                  <div className="flex justify-center pb-2 mt-4">
                     <button
                       onClick={() => setVisibleCount(displayedDonors.length)}
                       className="bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2.5 px-6 rounded-xl border border-red-100 shadow-sm transition-all active:scale-95 text-sm"
@@ -565,8 +566,8 @@ const Home = () => {
       </main>
 
       {/* Footer */}
-      {/* <footer className="max-w-md mx-auto px-4 py-12 mb-4 text-center text-sm text-gray-500">
-        Created By <a href="https://www.linkedin.com/in/sma-rashik/" target="_blank" rel="noopener noreferrer" className="font-semibold text-red-600 hover:underline transition-colors">S M Abdul Rashik</a>
+      {/* <footer className="max-w-md px-4 py-12 mx-auto mb-4 text-sm text-center text-gray-500">
+        Created By <a href="https://www.linkedin.com/in/sma-rashik/" target="_blank" rel="noopener noreferrer" className="font-semibold text-red-600 transition-colors hover:underline">S M Abdul Rashik</a>
       </footer> */}
 
       {/* Modals */}

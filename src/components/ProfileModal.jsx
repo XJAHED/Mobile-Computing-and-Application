@@ -11,6 +11,7 @@ const ProfileModal = ({ onClose }) => {
     address: '',
     lastDonation: '',
     isAvailable: true,
+    isVisible: true,
     group: '',
     profileCoordinates: []
   });
@@ -18,7 +19,11 @@ const ProfileModal = ({ onClose }) => {
 
   useEffect(() => {
     const saved = localStorage.getItem('userProfile');
-    if (saved) setProfile(JSON.parse(saved));
+    if (saved) {
+      // Merge with defaults so old saved profiles (missing isVisible, etc.)
+      // never leave controlled inputs with undefined values.
+      setProfile(prev => ({ ...prev, ...JSON.parse(saved) }));
+    }
   }, []);
 
   const handleChange = (e) => {
@@ -59,6 +64,7 @@ const ProfileModal = ({ onClose }) => {
               address: profile.address,
               group: profile.group,
               isAvailable: profile.isAvailable,
+              isVisible: profile.isVisible,
               lastDonation: profile.lastDonation || '',
               profileCoordinates: profile.profileCoordinates || []
           });
@@ -79,23 +85,23 @@ const ProfileModal = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center p-0 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 duration-200 bg-black/60 sm:items-center sm:p-4 animate-in fade-in">
       <div className="bg-white w-full max-w-md sm:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col relative animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 max-h-[90vh] transition-colors duration-200">
         
-        <header className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-3xl sticky top-0 z-10 transition-colors duration-200">
+        <header className="sticky top-0 z-10 flex items-center justify-between px-6 py-5 transition-colors duration-200 bg-white border-b border-gray-100 rounded-t-3xl">
           <h2 className="text-xl font-bold text-gray-900">My Profile</h2>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
+          <button onClick={onClose} className="p-2 text-gray-500 transition-colors rounded-full hover:bg-gray-100">
             <X className="w-5 h-5" />
           </button>
         </header>
 
-        <div className="p-6 overflow-y-auto space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto">
           <div className="space-y-4">
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <label className="block mb-1 text-sm font-medium text-gray-700">Full Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <User className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
                 <input 
                   type="text" 
                   name="name"
@@ -107,9 +113,9 @@ const ProfileModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <label className="block mb-1 text-sm font-medium text-gray-700">Phone Number</label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Phone className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
                 <input 
                   type="tel" 
                   name="phone"
@@ -121,7 +127,7 @@ const ProfileModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Home Location (Address)</label>
+              <label className="block mb-1 text-sm font-medium text-gray-700">Home Location (Address)</label>
               <LocationAutocomplete 
                 value={profile.address}
                 onLocationSelect={(addr, coords) => {
@@ -136,7 +142,7 @@ const ProfileModal = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Blood Group</label>
+              <label className="block mb-1 text-sm font-medium text-gray-700">Blood Group</label>
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-[10px] font-bold z-10">
                   {profile.group || '?'}
@@ -156,10 +162,10 @@ const ProfileModal = ({ onClose }) => {
             </div>
 
             {/* Editable Fields */}
-            <div className="border-t border-gray-100 pt-4 mt-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Blood Donation Date</label>
+            <div className="pt-4 mt-2 border-t border-gray-100">
+              <label className="block mb-1 text-sm font-medium text-gray-700">Last Blood Donation Date</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Calendar className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
                 <input 
                   type="date" 
                   name="lastDonation" 
@@ -170,7 +176,7 @@ const ProfileModal = ({ onClose }) => {
                 />
               </div>
               {!isEligible && (
-                <p className="text-xs text-red-500 mt-2 font-medium">
+                <p className="mt-2 text-xs font-medium text-red-500">
                   3 months have not passed since your last donation. You are currently ineligible.
                 </p>
               )}
@@ -193,10 +199,31 @@ const ProfileModal = ({ onClose }) => {
               </label>
             </div>
 
+            <div className="flex items-center justify-between p-4 mt-2 transition-colors border border-gray-200 rounded-xl bg-gray-50">
+
+
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Show My Profile</p>
+              <p className="text-xs text-gray-500">Hide your profile from the donor list</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="sr-only peer" 
+                checked={profile.isVisible}
+                onChange={(e) => setProfile({...profile, isVisible: e.target.checked})}
+              />
+              <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+            </label>
+          </div>
+
+
+
+
           </div>
         </div>
         
-        <div className="p-6 border-t border-gray-100 bg-white sm:rounded-b-3xl">
+        <div className="p-6 bg-white border-t border-gray-100 sm:rounded-b-3xl">
           <button 
             onClick={handleSave} 
             disabled={loading}
