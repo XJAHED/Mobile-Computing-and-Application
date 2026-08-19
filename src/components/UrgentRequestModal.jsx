@@ -36,22 +36,6 @@ const UrgentRequestModal = ({ onClose, currentUser }) => {
       
       await addDoc(collection(db, 'urgent_requests'), requestData);
 
-      // Send FCM push notifications to registered donors with the matching blood group
-      try {
-        await fetch('/api/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bloodGroup,
-            requesterName: currentUser.name,
-            location,
-            note
-          })
-        });
-      } catch (err) {
-        console.warn("Push notification send failed (request still posted):", err);
-      }
-
       onClose();
     } catch (err) {
       console.error("Error posting urgent request:", err);

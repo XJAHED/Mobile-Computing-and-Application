@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, MapPin, Search, Phone, Home as HouseIcon, UserCircle, AlertTriangle, Clock, Droplet, HelpCircle, Download } from 'lucide-react';
+import { LogOut, MapPin, Search, Phone, Home as HouseIcon, UserCircle, AlertTriangle, Clock, Droplet, HelpCircle } from 'lucide-react';
 import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, deleteDoc } from 'firebase/firestore';
-import { db, auth, messaging } from '../firebase';
-import { getToken } from 'firebase/messaging';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
+import { db, auth } from '../firebase';
 import { useRouter } from 'next/navigation';
 import BloodGroupButton from '../components/BloodGroupButton';
 import Button from '../components/Button';
@@ -31,8 +32,6 @@ const Home = () => {
   const [userLocation, setUserLocation] = useState(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(8);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [isInstallable, setIsInstallable] = useState(false);
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -45,88 +44,74 @@ const Home = () => {
     loadProfile();
   }, []);
 
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setIsInstallable(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      setIsInstallable(false);
-    }
-  };
-
   // 1. Get User's Live Location and Update Firestore
   useEffect(() => {
+    let cancelled = false;
+
+    const applyLocation = (coords) => {
+      if (cancelled) return;
+      setUserLocation(coords);
+      if (currentUser?.uid) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        updateDoc(userRef, { coordinates: coords }).catch((error) => {
+          console.error("Error updating location:", error);
+        });
+      }
+    };
+
     // 0. Fallback: Set location instantly using saved Account Profile Coordinates
     if (currentUser?.profileCoordinates?.length === 2) {
       setUserLocation(currentUser.profileCoordinates);
     }
 
-    if (currentUser && currentUser.uid && "geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          setUserLocation([lat, lng]);
+    if (!currentUser?.uid) return;
 
-          try {
-            const userRef = doc(db, 'users', currentUser.uid);
-            await updateDoc(userRef, {
-              coordinates: [lat, lng]
-            });
-          } catch (error) {
-            console.error("Error updating location:", error);
+    // Native Capacitor Geolocation (Android/iOS) — handles runtime permission prompt
+    const getNativeLocation = async () => {
+      try {
+        const permission = await Geolocation.checkPermissions();
+        if (permission.location === 'denied') {
+          const req = await Geolocation.requestPermissions();
+          if (req.location === 'denied') {
+            console.warn("Location permission denied by user.");
+            return;
           }
+        }
+        const position = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000
+        });
+        applyLocation([position.coords.latitude, position.coords.longitude]);
+      } catch (error) {
+        console.warn("Native geolocation error:", error);
+      }
+    };
+
+    // Web / PWA fallback
+    const getWebLocation = () => {
+      if (!("geolocation" in navigator)) {
+        console.warn("Geolocation not supported in this browser.");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          applyLocation([position.coords.latitude, position.coords.longitude]);
         },
         (error) => {
           console.warn("Geolocation error:", error.message);
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
       );
+    };
+
+    if (Capacitor.isNativePlatform()) {
+      getNativeLocation();
+    } else {
+      getWebLocation();
     }
-  }, [currentUser?.uid]);
 
-  // Request & Store FCM Push Token for specific blood group alerting
-  useEffect(() => {
-    if (currentUser?.uid && messaging && typeof window !== "undefined") {
-      const requestFCMToken = async () => {
-        try {
-          // If env var is missing, skip to avoid UI crashes
-          if (!process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY) return;
-
-          const permission = await Notification.requestPermission();
-          if (permission === 'granted') {
-            const currentToken = await getToken(messaging, {
-              vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
-            });
-            if (currentToken) {
-              const userRef = doc(db, 'users', currentUser.uid);
-              await updateDoc(userRef, { fcmToken: currentToken });
-            }
-          }
-        } catch (err) {
-          console.log("FCM Background permission error/denied:", err);
-        }
-      };
-
-      if (Notification.permission !== 'denied') {
-        requestFCMToken();
-      }
-    }
+    return () => { cancelled = true; };
   }, [currentUser?.uid]);
 
   // Haversine formula
@@ -169,6 +154,7 @@ const Home = () => {
           address: data.address,
           coordinates: activeCoords || [],
           isAvailable: data.isAvailable !== false,
+          isVisible: data.isVisible !== false,
           isEligible: isEligible,
           lastDonation: data.lastDonation || null
         });
@@ -238,7 +224,7 @@ const Home = () => {
   const displayedDonors = donors.filter(donor => {
     const matchGroup = searchedGroup ? donor.group === searchedGroup : true;
     const matchDistance = donor.distance !== '?' ? parseFloat(donor.distance) <= parseFloat(maxDistance) : true;
-    return matchGroup && matchDistance;
+    return matchGroup && matchDistance && donor.isVisible;
   });
 
   const handleLogout = async () => {
@@ -268,16 +254,6 @@ const Home = () => {
             <img className="absolute left-0 object-contain w-auto -translate-y-1/2 top-1/2 h-28 mix-blend-multiply" alt="ReDrop Logo" src="/logo.png" />
           </div>
           <div className="flex items-center gap-4">
-            {isInstallable && (
-              <button
-                onClick={handleInstallClick}
-                className="p-1 text-red-600 transition-colors hover:text-red-700 animate-bounce"
-                aria-label="Install App"
-                title="Install App"
-              >
-                <Download className="w-6 h-6" />
-              </button>
-            )}
             <button
               onClick={() => setIsGuideOpen(true)}
               className="p-1 text-gray-500 transition-colors hover:text-red-500"
@@ -563,11 +539,6 @@ const Home = () => {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      {/* <footer className="max-w-md px-4 py-12 mx-auto mb-4 text-sm text-center text-gray-500">
-        Created By <a href="https://www.linkedin.com/in/sma-rashik/" target="_blank" rel="noopener noreferrer" className="font-semibold text-red-600 transition-colors hover:underline">S M Abdul Rashik</a>
-      </footer> */}
 
       {/* Modals */}
       {isUrgentModalOpen && currentUser && (
