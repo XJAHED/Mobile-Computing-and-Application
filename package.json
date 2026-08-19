@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "generate-sw": "node scripts/generate-sw.js",
+    "build": "npm run generate-sw && next build --webpack",
     "start": "next start",
     "lint": "next lint"
   },
